@@ -79,22 +79,21 @@ public class GenericUDFRubyExec extends GenericUDF {
             // no hint of return type found
             returnOI = PrimitiveObjectInspectorFactory.getPrimitiveWritableObjectInspector(
                     PrimitiveObjectInspector.PrimitiveCategory.STRING);
-            rbScriptParam = ((WritableConstantStringObjectInspector) parameters[scriptParamPos]).getWritableConstantValue().toString().trim();
         } else if (parameters.length >= 2 && parameters[1] instanceof WritableConstantStringObjectInspector) {
             scriptParamPos = 1;
             // 1st param is hint of return type
-            returnOI = RubyUtils.resolveOI(parameters[0]);
-            // 2st rbScriptParam
-            rbScriptParam = ((WritableConstantStringObjectInspector) parameters[scriptParamPos]).getWritableConstantValue().toString();
+            returnOI = RubyScriptingUtils.resolveOI(parameters[0]);
         } else {
-            throw new UDFArgumentTypeException(0, "Can't found argument containing ruby method/script");
+            throw new UDFArgumentTypeException(0, "Couldn't find argument containing ruby method/script");
         }
+
+        rbScriptParam = RubyScriptingUtils.getScriptParam(parameters[scriptParamPos]);
 
         argsConverters = new ObjectInspectorConverters.Converter[parameters.length - scriptParamPos - 1];
         for (int i = 0; i < argsConverters.length; i++) {
             argsConverters[i] = ObjectInspectorConverters.getConverter(
                     parameters[i + scriptParamPos + 1],
-                    RubyUtils.resolveOI(parameters[i + scriptParamPos + 1])
+                    RubyScriptingUtils.resolveOI(parameters[i + scriptParamPos + 1])
             );
         }
 
@@ -113,14 +112,15 @@ public class GenericUDFRubyExec extends GenericUDF {
             sb.append(rbScriptParam);
         }
         LOG.info(sb.toString());
+
         return returnOI;
     }
 
     // initialize JRuby runtime here
+    // for JDK7+, there may be performance improvement
+    // by passing -Djruby.compile.invokedynamic=true to mapred.child.java.opts
     private void initializeJRubyRuntime() {
         container = new ScriptingContainer();
-        // for JDK7+, there may be performance improvement
-        // by passing -Djruby.compile.invokedynamic=true to mapred.child.java.opts
 
         if (jobConf != null) {
             container.getLoadPaths().add(jobConf.get(CONF_JRB_LOAD_PATH));

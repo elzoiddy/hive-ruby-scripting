@@ -59,7 +59,7 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         @Override
         public void configure(MapredContext mapredContext) {
             jobConf = mapredContext.getJobConf();
-            rbEnvScript = jobConf.get(RubyUtils.CONF_RB_SCRIPT);
+            rbEnvScript = jobConf.get(RubyScriptingUtils.CONF_RB_SCRIPT);
             initializeJRubyRuntime();
         }
 
@@ -75,20 +75,19 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
                 }
 
                 // string method name
-                iterateMethod = ((WritableConstantStringObjectInspector) parameters[0])
-                        .getWritableConstantValue().toString().trim();
+                iterateMethod = RubyScriptingUtils.getScriptParam(parameters[0]);
 
                 argsConverter = ObjectInspectorConverters.getConverter(
                         parameters[1],
-                        RubyUtils.resolveOI(parameters[1])
+                        RubyScriptingUtils.resolveOI(parameters[1])
                 );
 
                 if (m == Mode.PARTIAL1) {
-                    partialOI = genPartialOI(RubyUtils.resolveOI(parameters[1]));
+                    partialOI = genPartialOI(RubyScriptingUtils.resolveOI(parameters[1]));
                     return partialOI;
                 } else {
                     // result type is same as resolved parameter type
-                    retOI = RubyUtils.resolveOI(parameters[1]);
+                    retOI = RubyScriptingUtils.resolveOI(parameters[1]);
                     return retOI;
                 }
 
@@ -96,7 +95,7 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
                 // in which mode we get partial input
 
                 // PARTIAL2 / FINAL
-                partialOI = (StructObjectInspector) RubyUtils.resolveOI(parameters[0]);
+                partialOI = (StructObjectInspector) RubyScriptingUtils.resolveOI(parameters[0]);
                 partialConverter = ObjectInspectorConverters.getConverter(
                         parameters[0],
                         partialOI
@@ -116,7 +115,7 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
             container = new ScriptingContainer();
 
             if (jobConf != null) {
-                container.getLoadPaths().add(jobConf.get(RubyUtils.CONF_JRB_LOAD_PATH));
+                container.getLoadPaths().add(jobConf.get(RubyScriptingUtils.CONF_JRB_LOAD_PATH));
             }
             container.setAttribute(AttributeName.SHARING_VARIABLES, false);
             receiver = container.runScriptlet(rbEnvScript);

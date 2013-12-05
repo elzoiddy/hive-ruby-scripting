@@ -2,10 +2,11 @@ package net.gree.hive;
 
 import org.apache.hadoop.hive.serde2.objectinspector.*;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantStringObjectInspector;
 
 import java.util.ArrayList;
 
-public class RubyUtils {
+public class RubyScriptingUtils {
     public static final String CONF_RB_SCRIPT = "rb.script";
     public static final String CONF_JRB_LOAD_PATH = "jruby.load_path";
 
@@ -50,5 +51,9 @@ public class RubyUtils {
             default:
                 return arg;
         }
+    }
+
+    public static String getScriptParam(ObjectInspector paramOI) {
+        return ((WritableConstantStringObjectInspector) paramOI).getWritableConstantValue().toString().trim();
     }
 }
