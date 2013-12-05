@@ -20,37 +20,11 @@ import org.jruby.embed.ScriptingContainer;
 
 import java.util.ArrayList;
 
-
-/*
-design:
-
-reduce(iterateMethod, input)
-
-iterate, terminate Partial, merge Partial, terminate Partial
-set rb.script = '
-def sum(a,b) a + b end
-def union(a,b) a&b end
-def min(a,b) a<b ? a : b end
-';
-
-// example:
-// sum = reduce(":+",col)
-// [1,2,3], [3,4,5] => 6, 12 => 18
-
-// union = reduce(":&", col)
-// [[1,2,3],[2]], [[2,4,5],[2,5]] => [[2], [2,5]] => [2]
-
-// min = reduce("min", col)
-
-// X: partial data type : struct<op:List<String>, partial:__TYPE__, ret:__TYPE__>
- */
-
-
 @Description(name = "rb_inject",
         value = "_FUNC_(method, arg) - " + "Aggregate by using JRuby scriptlet",
         extended = "Examples:\n" +
                 "set rb.script = def sum(memo, arg) memo + arg end ; \n" +
-                "select user, rb_inject('sum', spent) from access group by user;")
+                "select user, rb_inject('sum', spent) from log group by user;")
 @UDFType(stateful = false)
 public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
     static final Log LOG = LogFactory.getLog(GenericUDAFRubyInject.class.getName());
@@ -62,7 +36,7 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         // argument check
         if (parameters.length < 2) {
             throw new UDFArgumentTypeException(parameters.length - 1,
-                    "At least two argument are expected.");
+                    "At least two arguments are expected.");
         }
 
         return new GenericUDAFRubyInjectEvaluator();
@@ -76,12 +50,9 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         private JobConf jobConf;
         private String iterateMethod;
         private ObjectInspector retOI;
-        private PrimitiveObjectInspector methodOI;
         private StructObjectInspector partialOI;
         private ObjectInspectorConverters.Converter argsConverter;
         private ObjectInspectorConverters.Converter partialConverter;
-        private ObjectInspectorConverters.Converter opConverter;
-        private ObjectInspectorConverters.Converter valConverter;
         private ScriptingContainer container;
         private Object receiver;
 
@@ -141,6 +112,21 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
             }
         }
 
+        private void initializeJRubyRuntime() {
+            container = new ScriptingContainer();
+
+            if (jobConf != null) {
+                container.getLoadPaths().add(jobConf.get(RubyUtils.CONF_JRB_LOAD_PATH));
+            }
+            container.setAttribute(AttributeName.SHARING_VARIABLES, false);
+            receiver = container.runScriptlet(rbEnvScript);
+
+            LOG.info("initialized JRuby runtime (" +
+                    container.getCompatVersion() + ", " +
+                    container.getCompileMode()
+                    + ")");
+        }
+
         static class ReduceAggregationBuffer implements AggregationBuffer {
             Object container = null;
         }
@@ -154,21 +140,6 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         public void reset(AggregationBuffer agg) throws HiveException {
             ((ReduceAggregationBuffer) agg).container = null;
         }
-
-        private void initializeJRubyRuntime() {
-            container = new ScriptingContainer();
-            if (jobConf != null) {
-                container.getLoadPaths().add(jobConf.get(RubyUtils.CONF_JRB_LOAD_PATH));
-            }
-            container.setAttribute(AttributeName.SHARING_VARIABLES, false);
-            receiver = container.runScriptlet(rbEnvScript);
-
-            LOG.info("initialized JRuby runtime (" +
-                    container.getCompatVersion() + ", " +
-                    container.getCompileMode()
-                    + ")");
-        }
-
 
         @Override
         public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
@@ -190,7 +161,6 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
             Object[] partial = new Object[2];
             partial[0] = iterateMethod;
             partial[1] = ((ReduceAggregationBuffer) agg).container;
-            //LOG.debug("terminatePartial:" + partial);
             return partial;
         }
 
@@ -221,13 +191,15 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
             return ((ReduceAggregationBuffer) agg).container;
         }
 
+        // partial data type : struct<op:List<String>, partial:__TYPE__ [, ret:__TYPE__]>
         public static StructObjectInspector genPartialOI(ObjectInspector val) {
 
             ArrayList<String> fnl = new ArrayList<String>(2);
             fnl.add(0, PARTIAL_OP);
             fnl.add(1, PARTIAL_VAL);
             ArrayList<ObjectInspector> foil = new ArrayList<ObjectInspector>(2);
-            foil.add(0, PrimitiveObjectInspectorFactory.getPrimitiveJavaObjectInspector(PrimitiveObjectInspector.PrimitiveCategory.STRING));
+            foil.add(0, PrimitiveObjectInspectorFactory.getPrimitiveJavaObjectInspector(
+                    PrimitiveObjectInspector.PrimitiveCategory.STRING));
             foil.add(1, val);
 
             return ObjectInspectorFactory.getStandardStructObjectInspector(fnl, foil);

@@ -43,11 +43,11 @@ public class GenericUDFRubyExec extends GenericUDF {
     public static final String CONF_RB_SCRIPT = "rb.script";
     public static final String CONF_JRB_LOAD_PATH = "jruby.load_path";
 
-    public static final int MODE_METHOD = 1;
-    public static final int MODE_EVAL = 2;
+    enum MODE {METHOD, EVAL}
+
     public static final String MODE_METHOD_MARK = "&";
 
-    private int mode;
+    private MODE mode;
     private int scriptParamPos;
     private String evaluateMethod;
     private JobConf jobConf;
@@ -103,7 +103,7 @@ public class GenericUDFRubyExec extends GenericUDF {
         StringBuilder sb = new StringBuilder();
         sb.append("initialized rb_exec. return type is ");
         sb.append(returnOI.getTypeName());
-        if (mode == MODE_METHOD) {
+        if (mode == MODE.METHOD) {
             sb.append(", try to evaluate using method '");
             sb.append(evaluateMethod);
             sb.append("' defined in rb.script as:\n");
@@ -119,20 +119,20 @@ public class GenericUDFRubyExec extends GenericUDF {
     // initialize JRuby runtime here
     private void initializeJRubyRuntime() {
         container = new ScriptingContainer();
-        //container.setCompileMode(RubyInstanceConfig.CompileMode.JIT);
-        //System.setProperty("jruby.compile.invokedynamic", "true");
+        // for JDK7+, there may be performance improvement
+        // by passing -Djruby.compile.invokedynamic=true to mapred.child.java.opts
 
         if (jobConf != null) {
             container.getLoadPaths().add(jobConf.get(CONF_JRB_LOAD_PATH));
         }
 
         if (rbScriptParam.startsWith(MODE_METHOD_MARK)) {
-            mode = MODE_METHOD;
+            mode = MODE.METHOD;
             evaluateMethod = rbScriptParam.substring(1);
             container.setAttribute(AttributeName.SHARING_VARIABLES, false);
             receiver = container.runScriptlet(rbEnvScript);
         } else {
-            mode = MODE_EVAL;
+            mode = MODE.EVAL;
             evalUnit = container.parse(rbScriptParam);
         }
 
@@ -144,14 +144,13 @@ public class GenericUDFRubyExec extends GenericUDF {
 
     @Override
     public Object evaluate(DeferredObject[] parameters) throws HiveException {
-
         Object[] args = new Object[argsConverters.length];
         for (int i = 0; i < args.length; i++) {
             args[i] = argsConverters[i].convert(parameters[i + scriptParamPos + 1].get());
         }
 
         Object ret;
-        if (mode == MODE_EVAL) {
+        if (mode == MODE.EVAL) {
             for (int i = 0; i < args.length; i++) {
                 container.put("@arg" + (i + 1), args[i]);
             }
