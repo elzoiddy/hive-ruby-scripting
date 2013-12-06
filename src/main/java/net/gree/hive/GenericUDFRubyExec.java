@@ -161,8 +161,12 @@ public class GenericUDFRubyExec extends GenericUDF {
 
         if (scriptParamPos == 0) {
             // should return String
-            retText.set(ret.toString());
-            return retText;
+            if (ret != null) {
+                retText.set(ret.toString());
+                return retText;
+            } else {
+                return null;
+            }
         } else {
             return ret;
         }
