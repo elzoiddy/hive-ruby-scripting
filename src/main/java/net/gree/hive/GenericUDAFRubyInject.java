@@ -53,8 +53,8 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         private StructObjectInspector partialOI;
         private ObjectInspectorConverters.Converter argsConverter;
         private ObjectInspectorConverters.Converter partialConverter;
-        private ScriptingContainer container;
-        private Object receiver;
+        transient private ScriptingContainer container;
+        transient private Object receiver;
 
         @Override
         public void configure(MapredContext mapredContext) {

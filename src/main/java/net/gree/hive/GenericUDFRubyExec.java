@@ -54,9 +54,9 @@ public class GenericUDFRubyExec extends GenericUDF {
     private String rbScriptParam;
     private String rbEnvScript;
 
-    private ScriptingContainer container;
+    transient private ScriptingContainer container;
     private Object receiver;
-    private EmbedEvalUnit evalUnit;
+    transient private EmbedEvalUnit evalUnit;
 
     // to get value of rb.script & jruby.load_path from Context
     @Override
