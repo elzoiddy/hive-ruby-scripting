@@ -35,7 +35,7 @@ rb_exec(Map('k','y'), "&method", args)
 @UDFType(stateful = false)
 public class GenericUDFRubyExec extends GenericUDF {
     private ObjectInspector returnOI;
-    private ObjectInspectorConverters.Converter[] argsConverters;
+    transient private ObjectInspectorConverters.Converter[] argsConverters;
     private Log LOG = LogFactory.getLog(GenericUDFRubyExec.class.getName());
 
     private final Text retText = new Text();
