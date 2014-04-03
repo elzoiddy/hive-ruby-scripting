@@ -120,7 +120,7 @@ public class GenericUDFRubyExec extends GenericUDF {
     // for JDK7+, there may be performance improvement
     // by passing -Djruby.compile.invokedynamic=true to mapred.child.java.opts
     private void initializeJRubyRuntime() {
-        container = new ScriptingContainer();
+        container = new ScriptingContainer(org.jruby.embed.LocalContextScope.SINGLETHREAD);
 
         if (jobConf != null) {
             container.getLoadPaths().add(jobConf.get(CONF_JRB_LOAD_PATH));

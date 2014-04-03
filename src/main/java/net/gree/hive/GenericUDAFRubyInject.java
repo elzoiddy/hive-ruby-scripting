@@ -112,7 +112,7 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         }
 
         private void initializeJRubyRuntime() {
-            container = new ScriptingContainer();
+            container = new ScriptingContainer(org.jruby.embed.LocalContextScope.SINGLETHREAD);
 
             if (jobConf != null) {
                 container.getLoadPaths().add(jobConf.get(RubyScriptingUtils.CONF_JRB_LOAD_PATH));
