@@ -51,8 +51,8 @@ public class GenericUDAFRubyInject extends AbstractGenericUDAFResolver {
         private String iterateMethod;
         private ObjectInspector retOI;
         private StructObjectInspector partialOI;
-        private ObjectInspectorConverters.Converter argsConverter;
-        private ObjectInspectorConverters.Converter partialConverter;
+        transient private ObjectInspectorConverters.Converter argsConverter;
+        transient private ObjectInspectorConverters.Converter partialConverter;
         transient private ScriptingContainer container;
         transient private Object receiver;
 
