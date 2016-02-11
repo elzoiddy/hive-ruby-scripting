@@ -22,6 +22,8 @@ import org.jruby.embed.ScriptingContainer;
 import org.jruby.javasupport.JavaEmbedUtils;
 import org.jruby.runtime.builtin.IRubyObject;
 
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.session.SessionState;
 /*
 rb_exec("&method", args)
 rb_exec("script", args)
@@ -53,6 +55,8 @@ public class GenericUDFRubyExec extends GenericUDF {
     private JobConf jobConf;
     private String rbScriptParam;
     private String rbEnvScript;
+    private HiveConf hiveConf;
+
 
     transient private ScriptingContainer container;
     private Object receiver;
@@ -73,6 +77,14 @@ public class GenericUDFRubyExec extends GenericUDF {
             throw new UDFArgumentTypeException(parameters.length - 1,
                     "At least one argument is expected.");
         }
+
+        SessionState sessionState = SessionState.get();
+        if (sessionState != null) {
+            hiveConf = sessionState.getConf();
+            rbEnvScript = hiveConf.get(CONF_RB_SCRIPT);
+            LOG.info("got rb.script " + rbEnvScript);
+        }
+
 
         scriptParamPos = 0;
         if (parameters[0] instanceof WritableConstantStringObjectInspector) {
@@ -122,8 +134,8 @@ public class GenericUDFRubyExec extends GenericUDF {
     private void initializeJRubyRuntime() {
         container = new ScriptingContainer(org.jruby.embed.LocalContextScope.SINGLETHREAD);
 
-        if (jobConf != null) {
-            container.getLoadPaths().add(jobConf.get(CONF_JRB_LOAD_PATH));
+        if (hiveConf != null) {
+            container.getLoadPaths().add(hiveConf.get(CONF_JRB_LOAD_PATH));
         }
 
         if (rbScriptParam.startsWith(MODE_METHOD_MARK)) {
@@ -135,11 +147,11 @@ public class GenericUDFRubyExec extends GenericUDF {
             mode = MODE.EVAL;
             evalUnit = container.parse(rbScriptParam);
         }
-
         LOG.info("initialized JRuby runtime (" +
                 container.getCompatVersion() + ", " +
                 container.getCompileMode()
                 + ")");
+
     }
 
     @Override
