@@ -42,6 +42,15 @@ select rb_exec('&hello', name) from user;
 select rb_exec(Map('k','v'), '{@arg1 => @arg2}', name, score) from scores;
 ```
 
+```sql
+-- returning Array<String> by passing hint as 1st argument
+
+select rb_exec(Array('a'), '&do_something', events)[1] from
+  events_table;
+```
+  
+
+
 ## rb_inject
 #### do Aggregation by using ruby scriplet
 ```sql
