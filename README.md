@@ -4,7 +4,7 @@ hive-ruby-scripting
 
 Japanese intro: http://labs.gree.jp/blog/2013/12/9061/
 
-*Hive 0.12.0, JRuby 1.7.4, JDK7 is recommended.*
+*Hive 0.13.0, JRuby 1.7.4, JDK7 is recommended.*
 
 ## build
 by using `mvn package`
